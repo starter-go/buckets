@@ -1,0 +1,33 @@
+{
+    "configen": {
+        "version": "4",
+        "sources": [
+            {
+                "id": "main",
+                "path": "src/main/golang/",
+                "r": true
+            },
+            {
+                "id": "test",
+                "path": "src/test/golang/",
+                "r": true
+            }
+        ],
+        "destinations": [
+            {
+                "id": "main",
+                "path": "gen/main4buckets",
+                "sources": [
+                    "main"
+                ]
+            },
+            {
+                "id": "test",
+                "path": "gen/test4buckets",
+                "sources": [
+                    "test"
+                ]
+            }
+        ]
+    }
+}

@@ -1,0 +1,28 @@
+package buckets
+
+import (
+	"context"
+	"time"
+)
+
+type Bucket interface {
+	GetObject(name ObjectName) *Object
+
+	Fetch(o *Object) (*Object, error)
+
+	Put(o *Object) (*Object, error)
+
+	GetMeta(o *Object) (*Object, error)
+
+	Exists(o *Object) (bool, error)
+}
+
+type OpenOptions struct {
+	Context context.Context
+	Flag    int
+	Timeout time.Duration
+}
+
+type Loader interface {
+	Open(cfg *Configuration, options *OpenOptions) (Bucket, error)
+}
