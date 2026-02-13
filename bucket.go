@@ -6,6 +6,10 @@ import (
 )
 
 type Bucket interface {
+	SetContext(ctx context.Context) Bucket
+
+	GetContext() context.Context
+
 	GetObject(name ObjectName) *Object
 
 	Fetch(o *Object) (*Object, error)

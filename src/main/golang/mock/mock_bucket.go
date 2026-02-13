@@ -2,6 +2,7 @@ package mock
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"io"
@@ -11,9 +12,31 @@ import (
 )
 
 type innerMockBucket struct {
-	config buckets.Configuration
-	oo     buckets.OpenOptions
-	repo   *myRepoContext
+	config  buckets.Configuration
+	oo      buckets.OpenOptions
+	repo    *myRepoContext
+	context context.Context
+}
+
+// GetContext implements buckets.Bucket.
+func (inst *innerMockBucket) GetContext() context.Context {
+
+	ctx := inst.context
+	if ctx == nil {
+		ctx = context.Background()
+		inst.context = ctx
+	}
+	return ctx
+}
+
+// SetContext implements buckets.Bucket.
+func (inst *innerMockBucket) SetContext(ctx context.Context) buckets.Bucket {
+
+	if ctx != nil {
+		inst.context = ctx
+	}
+
+	return inst
 }
 
 func (inst *innerMockBucket) _impl() buckets.Bucket {

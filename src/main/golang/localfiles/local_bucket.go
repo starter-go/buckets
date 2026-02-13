@@ -1,6 +1,7 @@
 package localfiles
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -21,6 +22,7 @@ type innerLocalBucket struct {
 	config1 buckets.Configuration
 	oo      buckets.OpenOptions
 	layout  layout
+	context context.Context
 }
 
 func (inst *innerLocalBucket) _impl() buckets.Bucket {
@@ -74,6 +76,28 @@ func (inst *innerLocalBucket) toInnerObjectHolder(o1 *buckets.Object) (*innerObj
 	h.object.Bucket = inst
 
 	return h, nil
+}
+
+func (inst *innerLocalBucket) SetContext(ctx context.Context) buckets.Bucket {
+
+	if ctx == nil {
+		return inst
+	}
+
+	inst.context = ctx
+	return inst
+}
+
+func (inst *innerLocalBucket) GetContext() context.Context {
+
+	ctx := inst.context
+
+	if ctx == nil {
+		ctx = context.Background()
+		inst.context = ctx
+	}
+
+	return ctx
 }
 
 func (inst *innerLocalBucket) GetObject(name buckets.ObjectName) *buckets.Object {

@@ -1,6 +1,7 @@
 package buckets
 
 import (
+	"context"
 	"io"
 )
 
@@ -10,6 +11,9 @@ import (
 
 // Object  代表一个具体的对象
 type Object struct {
+
+	// 操作该对象的上下文
+	Context context.Context
 
 	// 对象的名称 (相当于路径)
 	Name ObjectName
