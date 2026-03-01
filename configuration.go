@@ -8,5 +8,7 @@ type Configuration struct {
 	AccessKeyID     string
 	AccessKeySecret string
 
+	MaxObjectSize int // 指定存储桶支持的最大对象大小 (0表示加载默认值; 小于0表示无限制)
+
 	Location Location //resolved location
 }
