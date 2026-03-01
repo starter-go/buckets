@@ -18,6 +18,20 @@ type innerMockBucket struct {
 	context context.Context
 }
 
+// Delete implements buckets.Bucket.
+func (inst *innerMockBucket) Delete(o1 *buckets.Object) error {
+
+	name := o1.Name
+	h := inst.repo.table[name]
+	inst.repo.table[name] = nil
+
+	if h == nil {
+		return fmt.Errorf("no object with name: %v", name)
+	}
+
+	return nil
+}
+
 // GetContext implements buckets.Bucket.
 func (inst *innerMockBucket) GetContext() context.Context {
 

@@ -18,6 +18,8 @@ type Bucket interface {
 
 	GetMeta(o *Object) (*Object, error)
 
+	Delete(o *Object) error
+
 	Exists(o *Object) (bool, error)
 }
 

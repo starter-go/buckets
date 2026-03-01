@@ -25,6 +25,40 @@ type innerLocalBucket struct {
 	context context.Context
 }
 
+// Delete implements buckets.Bucket.
+func (inst *innerLocalBucket) Delete(o1 *buckets.Object) error {
+
+	h, err := inst.toInnerObjectHolder(o1)
+	if err != nil {
+		return err
+	}
+
+	f1 := h.dataFile
+	f2 := h.metaFile
+	flist := []afs.Path{f1, f2}
+	count := 0
+
+	for _, p := range flist {
+		if p == nil {
+			continue
+		}
+		if !p.Exists() {
+			continue
+		}
+		err := p.Delete()
+		if err != nil {
+			return err
+		}
+		count++
+	}
+
+	if count == 0 {
+		name := o1.Name
+		return fmt.Errorf("no object with name: %s", name)
+	}
+	return nil
+}
+
 func (inst *innerLocalBucket) _impl() buckets.Bucket {
 	return inst
 }
