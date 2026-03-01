@@ -33,6 +33,9 @@ type Object struct {
 	// 对象是否存在
 	Existed bool
 
+	// 对象的元数据
+	Meta map[string]string
+
 	// 对象的数据来源
 	Data io.ReadCloser
 }
