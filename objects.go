@@ -3,6 +3,8 @@ package buckets
 import (
 	"context"
 	"io"
+
+	"github.com/starter-go/afs"
 )
 
 // // ObjectMeta 结构包含对象的元数据信息
@@ -38,4 +40,10 @@ type Object struct {
 
 	// 对象的数据来源
 	Data io.ReadCloser
+}
+
+type ObjectFile struct {
+	Object
+
+	Path afs.Path
 }

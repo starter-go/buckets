@@ -5,6 +5,14 @@ import (
 	"time"
 )
 
+type BucketFileAPI interface {
+	Bucket() Bucket
+
+	FetchFile(o *ObjectFile) (*ObjectFile, error)
+
+	PutFile(o *ObjectFile) (*ObjectFile, error)
+}
+
 type Bucket interface {
 	SetContext(ctx context.Context) Bucket
 
@@ -21,6 +29,8 @@ type Bucket interface {
 	Delete(o *Object) error
 
 	Exists(o *Object) (bool, error)
+
+	ForFiles() BucketFileAPI
 }
 
 type OpenOptions struct {
