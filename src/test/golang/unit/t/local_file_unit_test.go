@@ -11,19 +11,19 @@ import (
 func TestUseLocalFile(t *testing.T) {
 
 	args := []string{}
-
+	ctx := units.NewContext()
 	props := map[string]string{
 		"debug.enabled":        "1",
 		"debug.log-properties": "1",
 	}
 
-	units.Run(&units.Config{
-		Args:       args,
-		Cases:      unit.TheLocalFileUnit,
-		Module:     buckets.ModuleTest(),
-		T:          t,
-		Properties: props,
-		UsePanic:   false,
-	})
+	ctx.Arguments = args
+	ctx.Module = buckets.ModuleTest()
+	ctx.Properties = props
+	ctx.UsePanic = true
+	ctx.Selector = "#" + unit.TheLocalFileUnit
+	ctx.T = t
+
+	units.Run(ctx)
 
 }

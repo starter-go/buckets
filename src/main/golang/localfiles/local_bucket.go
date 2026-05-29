@@ -2,11 +2,13 @@ package localfiles
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"io"
 	"strings"
 
 	"github.com/starter-go/afs"
+	"github.com/starter-go/base/lang"
 	"github.com/starter-go/buckets"
 )
 
@@ -25,10 +27,72 @@ type innerLocalBucket struct {
 	context context.Context
 }
 
+// Bucket implements buckets.BucketFileAPI.
+func (inst *innerLocalBucket) Bucket() buckets.Bucket {
+	return inst
+}
+
+// FetchFile implements buckets.BucketFileAPI.
+func (inst *innerLocalBucket) FetchFile(o1 *buckets.ObjectFile) (*buckets.ObjectFile, error) {
+
+	if o1 == nil {
+		return nil, fmt.Errorf("param: 'object(want)' is nil")
+	}
+	holder, err := inst.innerGetObjectHolder(&o1.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	src := holder.dataFile
+	dst := o1.Path
+
+	copier := new(innerFileCopier)
+	err = copier.copy(src, dst)
+	if err != nil {
+		return nil, err
+	}
+
+	info := dst.GetInfo()
+	o1.Bucket = inst
+	o1.Size = info.Length()
+	return o1, nil
+}
+
+// PutFile implements buckets.BucketFileAPI.
+func (inst *innerLocalBucket) PutFile(o1 *buckets.ObjectFile) (*buckets.ObjectFile, error) {
+
+	if o1 == nil {
+		return nil, fmt.Errorf("param: 'object(want)' is nil")
+	}
+	holder, err := inst.innerGetObjectHolder(&o1.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	dst := holder.dataFile
+	src := o1.Path
+
+	copier := new(innerFileCopier)
+	err = copier.copy(src, dst)
+	if err != nil {
+		return nil, err
+	}
+
+	info := dst.GetInfo()
+	o1.Bucket = inst
+	o1.Size = info.Length()
+	return o1, nil
+}
+
+// ForFiles implements buckets.Bucket.
+func (inst *innerLocalBucket) ForFiles() buckets.BucketFileAPI {
+	return inst
+}
+
 // Delete implements buckets.Bucket.
 func (inst *innerLocalBucket) Delete(o1 *buckets.Object) error {
 
-	h, err := inst.toInnerObjectHolder(o1)
+	h, err := inst.innerGetObjectHolder(o1)
 	if err != nil {
 		return err
 	}
@@ -59,21 +123,9 @@ func (inst *innerLocalBucket) Delete(o1 *buckets.Object) error {
 	return nil
 }
 
-func (inst *innerLocalBucket) _impl() buckets.Bucket {
-	return inst
+func (inst *innerLocalBucket) _impl() (buckets.Bucket, buckets.BucketFileAPI) {
+	return inst, inst
 }
-
-// func (inst *innerLocalBucket) getPathOf(o *buckets.Object) (string, error) {
-// 	o2, err := inst.toInnerObjectHolder(o)
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	path := o2.dataFile.GetPath()
-// 	if path == "" {
-// 		return "", fmt.Errorf("bad path")
-// 	}
-// 	return path, nil
-// }
 
 func (inst *innerLocalBucket) isChildOf(child, parent afs.Path) bool {
 	sep := child.GetFS().Separator()
@@ -95,7 +147,7 @@ func (inst *innerLocalBucket) computeObjectPath(name buckets.ObjectName) afs.Pat
 	panic("bad path of object: " + name.String())
 }
 
-func (inst *innerLocalBucket) toInnerObjectHolder(o1 *buckets.Object) (*innerObjectHolder, error) {
+func (inst *innerLocalBucket) innerGetObjectHolder(o1 *buckets.Object) (*innerObjectHolder, error) {
 
 	if o1 == nil {
 		return nil, fmt.Errorf("object is nil")
@@ -144,7 +196,7 @@ func (inst *innerLocalBucket) GetObject(name buckets.ObjectName) *buckets.Object
 
 func (inst *innerLocalBucket) Fetch(o1 *buckets.Object) (*buckets.Object, error) {
 
-	h, err := inst.toInnerObjectHolder(o1)
+	h, err := inst.innerGetObjectHolder(o1)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +218,7 @@ func (inst *innerLocalBucket) Fetch(o1 *buckets.Object) (*buckets.Object, error)
 
 func (inst *innerLocalBucket) Put(o1 *buckets.Object) (*buckets.Object, error) {
 
-	h, err := inst.toInnerObjectHolder(o1)
+	h, err := inst.innerGetObjectHolder(o1)
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +260,7 @@ func (inst *innerLocalBucket) Put(o1 *buckets.Object) (*buckets.Object, error) {
 
 func (inst *innerLocalBucket) GetMeta(o1 *buckets.Object) (*buckets.Object, error) {
 
-	h, err := inst.toInnerObjectHolder(o1)
+	h, err := inst.innerGetObjectHolder(o1)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +272,7 @@ func (inst *innerLocalBucket) GetMeta(o1 *buckets.Object) (*buckets.Object, erro
 }
 
 func (inst *innerLocalBucket) Exists(o1 *buckets.Object) (bool, error) {
-	h, err := inst.toInnerObjectHolder(o1)
+	h, err := inst.innerGetObjectHolder(o1)
 	if err != nil {
 		return false, err
 	}
@@ -228,3 +280,129 @@ func (inst *innerLocalBucket) Exists(o1 *buckets.Object) (bool, error) {
 	ex2 := h.dataFile.IsFile()
 	return (ex1 && ex2), nil
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+type innerFileCopier struct {
+	force bool
+}
+
+func (inst *innerFileCopier) copy(src, dst afs.Path) error {
+	if !inst.force {
+		if inst.innerIsEqual(src, dst) {
+			return nil // skip
+		}
+	}
+	return inst.innerDoCopy(src, dst)
+}
+
+func (inst *innerFileCopier) innerDoCopy(src, dst afs.Path) error {
+
+	if src == nil || dst == nil {
+		return fmt.Errorf("todo")
+	}
+
+	path1 := src.GetPath()
+	path2 := dst.GetPath()
+	if path1 == path2 {
+		return nil // ignore
+	}
+
+	info := src.GetInfo()
+	optionR := inst.innerGetFileOptionR()
+	optionW := inst.innerGetFileOptionW()
+	tmp := inst.innerNewTempFile(dst)
+	defer inst.innerClearTempFile(tmp)
+
+	rdr, err := src.GetIO().OpenReader(optionR)
+	if err != nil {
+		return err
+	}
+	defer rdr.Close()
+
+	wtr, err := tmp.GetIO().OpenWriter(optionW)
+	if err != nil {
+		return err
+	}
+	defer wtr.Close()
+
+	count, err := io.Copy(wtr, rdr)
+	if err != nil {
+		return err
+	}
+
+	rdr.Close()
+	wtr.Close()
+
+	if count != info.Length() {
+		return fmt.Errorf("todo")
+	}
+
+	if dst.IsFile() {
+		dst.Delete()
+	}
+
+	return tmp.MoveTo(dst, optionW)
+}
+
+func (inst *innerFileCopier) innerNewTempFile(src afs.Path) afs.Path {
+	name := src.GetName()
+	parent := src.GetParent()
+	fsys := src.GetFS()
+	tmp, err := fsys.CreateTempFile(name, ".tmp~", parent)
+	if err != nil {
+		panic(err)
+	}
+	return tmp
+}
+
+func (inst *innerFileCopier) innerClearTempFile(tmp afs.Path) {
+	if tmp.IsFile() {
+		tmp.Delete()
+	}
+}
+
+func (inst *innerFileCopier) innerIsEqual(src, dst afs.Path) bool {
+
+	if src == nil || dst == nil {
+		return false
+	}
+
+	len1 := src.GetInfo().Length()
+	len2 := dst.GetInfo().Length()
+	if len1 != len2 {
+		return false
+	}
+
+	sum1, _ := inst.innerComputeSum(src)
+	sum2, _ := inst.innerComputeSum(dst)
+
+	return sum1 == sum2
+}
+
+func (inst *innerFileCopier) innerComputeSum(file afs.Path) (lang.Hex, error) {
+
+	opt := inst.innerGetFileOptionR()
+	src, err := file.GetIO().OpenReader(opt)
+	if err != nil {
+		return "", err
+	}
+	defer src.Close()
+
+	sha := sha256.New()
+	io.Copy(sha, src)
+	sum := sha.Sum(nil)
+
+	hex := lang.HexFromBytes(sum[:])
+	return hex, nil
+}
+
+func (inst *innerFileCopier) innerGetFileOptionR() *afs.Options {
+	return afs.ToReadFile()
+}
+
+func (inst *innerFileCopier) innerGetFileOptionW() *afs.Options {
+	return afs.ToCreateFile()
+}
+
+////////////////////////////////////////////////////////////////////////////////

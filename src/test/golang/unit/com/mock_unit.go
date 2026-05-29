@@ -15,23 +15,23 @@ type MockUnit struct {
 
 	//starter:component
 
-	_as func(units.Units) //starter:as(".")
+	_as func(units.Unit) //starter:as(".")
 
 	Service buckets.Service //starter:inject("#")
 
 }
 
-func (inst *MockUnit) _impl() units.Units {
+func (inst *MockUnit) _impl() units.Unit {
 	return inst
 }
 
-func (inst *MockUnit) Units(list []*units.Registration) []*units.Registration {
+func (inst *MockUnit) ListRegistrations(list []*units.Registration) []*units.Registration {
 
 	u1 := &units.Registration{
 		Name:     unit.TheMockUnit,
 		Enabled:  true,
 		Priority: 1,
-		Test:     inst.runTest,
+		Do:       inst.runTest,
 	}
 
 	list = append(list, u1)

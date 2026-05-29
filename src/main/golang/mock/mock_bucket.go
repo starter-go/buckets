@@ -18,6 +18,11 @@ type innerMockBucket struct {
 	context context.Context
 }
 
+// ForFiles implements buckets.Bucket.
+func (inst *innerMockBucket) ForFiles() buckets.BucketFileAPI {
+	panic("unimplemented")
+}
+
 // Delete implements buckets.Bucket.
 func (inst *innerMockBucket) Delete(o1 *buckets.Object) error {
 

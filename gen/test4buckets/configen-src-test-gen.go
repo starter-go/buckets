@@ -8,7 +8,7 @@ import (
 // type pfde5cc127.LocalFileUnit in package:github.com/starter-go/buckets/src/test/golang/unit/com
 //
 // id:com-fde5cc127c251d8d-com-LocalFileUnit
-// class:class-0dc072ed44b3563882bff4e657a52e62-Units
+// class:class-0dc072ed44b3563882bff4e657a52e62-Unit
 // alias:
 // scope:singleton
 //
@@ -18,7 +18,7 @@ type pfde5cc127c_com_LocalFileUnit struct {
 func (inst* pfde5cc127c_com_LocalFileUnit) register(cr application.ComponentRegistry) error {
 	r := cr.NewRegistration()
 	r.ID = "com-fde5cc127c251d8d-com-LocalFileUnit"
-	r.Classes = "class-0dc072ed44b3563882bff4e657a52e62-Units"
+	r.Classes = "class-0dc072ed44b3563882bff4e657a52e62-Unit"
 	r.Aliases = ""
 	r.Scope = "singleton"
 	r.NewFunc = inst.new
@@ -52,7 +52,7 @@ func (inst*pfde5cc127c_com_LocalFileUnit) getService(ie application.InjectionExt
 // type pfde5cc127.MockUnit in package:github.com/starter-go/buckets/src/test/golang/unit/com
 //
 // id:com-fde5cc127c251d8d-com-MockUnit
-// class:class-0dc072ed44b3563882bff4e657a52e62-Units
+// class:class-0dc072ed44b3563882bff4e657a52e62-Unit
 // alias:
 // scope:singleton
 //
@@ -62,7 +62,7 @@ type pfde5cc127c_com_MockUnit struct {
 func (inst* pfde5cc127c_com_MockUnit) register(cr application.ComponentRegistry) error {
 	r := cr.NewRegistration()
 	r.ID = "com-fde5cc127c251d8d-com-MockUnit"
-	r.Classes = "class-0dc072ed44b3563882bff4e657a52e62-Units"
+	r.Classes = "class-0dc072ed44b3563882bff4e657a52e62-Unit"
 	r.Aliases = ""
 	r.Scope = "singleton"
 	r.NewFunc = inst.new
