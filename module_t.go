@@ -9,8 +9,8 @@ import (
 
 const (
 	theModuleName     = "github.com/starter-go/buckets"
-	theModuleVersion  = "v0.0.4"
-	theModuleRevision = 4
+	theModuleVersion  = "v0.0.5"
+	theModuleRevision = 5
 )
 
 ////////////////////////////////////////////////////////////////////////////////
