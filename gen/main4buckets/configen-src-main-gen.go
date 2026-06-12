@@ -5,7 +5,6 @@ import (
     p262c04a06 "github.com/starter-go/buckets"
     pf6935ed6a "github.com/starter-go/buckets/src/main/golang/core"
     pac41a78b8 "github.com/starter-go/buckets/src/main/golang/localfiles"
-    p019b1834a "github.com/starter-go/buckets/src/main/golang/mock"
      "github.com/starter-go/application"
 )
 
@@ -161,56 +160,6 @@ func (inst*pac41a78b8d_localfiles_Driver) getPriority(ie application.InjectionEx
 
 func (inst*pac41a78b8d_localfiles_Driver) getAFS(ie application.InjectionExt)p0d2a11d16.FS{
     return ie.GetComponent("#alias-0d2a11d163e349503a64168a1cdf48a2-FS").(p0d2a11d16.FS)
-}
-
-
-
-// type p019b1834a.Driver in package:github.com/starter-go/buckets/src/main/golang/mock
-//
-// id:com-019b1834ac6506d8-mock-Driver
-// class:class-262c04a06c32904104382e2b8d56c279-DriverRegistry
-// alias:
-// scope:singleton
-//
-type p019b1834ac_mock_Driver struct {
-}
-
-func (inst* p019b1834ac_mock_Driver) register(cr application.ComponentRegistry) error {
-	r := cr.NewRegistration()
-	r.ID = "com-019b1834ac6506d8-mock-Driver"
-	r.Classes = "class-262c04a06c32904104382e2b8d56c279-DriverRegistry"
-	r.Aliases = ""
-	r.Scope = "singleton"
-	r.NewFunc = inst.new
-	r.InjectFunc = inst.inject
-	return r.Commit()
-}
-
-func (inst* p019b1834ac_mock_Driver) new() any {
-    return &p019b1834a.Driver{}
-}
-
-func (inst* p019b1834ac_mock_Driver) inject(injext application.InjectionExt, instance any) error {
-	ie := injext
-	com := instance.(*p019b1834a.Driver)
-	nop(ie, com)
-
-	
-    com.Enabled = inst.getEnabled(ie)
-    com.Priority = inst.getPriority(ie)
-
-
-    return nil
-}
-
-
-func (inst*p019b1834ac_mock_Driver) getEnabled(ie application.InjectionExt)bool{
-    return ie.GetBool("${buckets-driver.mock.enabled}")
-}
-
-
-func (inst*p019b1834ac_mock_Driver) getPriority(ie application.InjectionExt)int{
-    return ie.GetInt("${buckets-driver.mock.priority}")
 }
 
 

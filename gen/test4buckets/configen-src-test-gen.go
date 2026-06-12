@@ -5,6 +5,56 @@ import (
      "github.com/starter-go/application"
 )
 
+// type pfde5cc127.CommonCrudUnits in package:github.com/starter-go/buckets/src/test/golang/unit/com
+//
+// id:com-fde5cc127c251d8d-com-CommonCrudUnits
+// class:class-0dc072ed44b3563882bff4e657a52e62-Unit
+// alias:
+// scope:singleton
+//
+type pfde5cc127c_com_CommonCrudUnits struct {
+}
+
+func (inst* pfde5cc127c_com_CommonCrudUnits) register(cr application.ComponentRegistry) error {
+	r := cr.NewRegistration()
+	r.ID = "com-fde5cc127c251d8d-com-CommonCrudUnits"
+	r.Classes = "class-0dc072ed44b3563882bff4e657a52e62-Unit"
+	r.Aliases = ""
+	r.Scope = "singleton"
+	r.NewFunc = inst.new
+	r.InjectFunc = inst.inject
+	return r.Commit()
+}
+
+func (inst* pfde5cc127c_com_CommonCrudUnits) new() any {
+    return &pfde5cc127.CommonCrudUnits{}
+}
+
+func (inst* pfde5cc127c_com_CommonCrudUnits) inject(injext application.InjectionExt, instance any) error {
+	ie := injext
+	com := instance.(*pfde5cc127.CommonCrudUnits)
+	nop(ie, com)
+
+	
+    com.Service = inst.getService(ie)
+    com.BucketName = inst.getBucketName(ie)
+
+
+    return nil
+}
+
+
+func (inst*pfde5cc127c_com_CommonCrudUnits) getService(ie application.InjectionExt)p262c04a06.Service{
+    return ie.GetComponent("#alias-262c04a06c32904104382e2b8d56c279-Service").(p262c04a06.Service)
+}
+
+
+func (inst*pfde5cc127c_com_CommonCrudUnits) getBucketName(ie application.InjectionExt)string{
+    return ie.GetString("${units.common-crud.bucket-name}")
+}
+
+
+
 // type pfde5cc127.LocalFileUnit in package:github.com/starter-go/buckets/src/test/golang/unit/com
 //
 // id:com-fde5cc127c251d8d-com-LocalFileUnit

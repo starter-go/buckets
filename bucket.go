@@ -2,6 +2,7 @@ package buckets
 
 import (
 	"context"
+	"hash"
 	"time"
 )
 
@@ -11,6 +12,14 @@ type BucketFileAPI interface {
 	FetchFile(o *ObjectFile) (*ObjectFile, error)
 
 	PutFile(o *ObjectFile) (*ObjectFile, error)
+}
+
+type BucketNativeSumAPI interface {
+	Bucket() Bucket
+
+	Algorithm() CheckSumAlgorithm
+
+	Hash() hash.Hash
 }
 
 type Bucket interface {
@@ -31,6 +40,8 @@ type Bucket interface {
 	Exists(o *Object) (bool, error)
 
 	ForFiles() BucketFileAPI
+
+	ForSum() BucketNativeSumAPI
 }
 
 type OpenOptions struct {

@@ -30,7 +30,6 @@ func (inst *autoRegistrar) register(factory comFactory) error {
 func (inst*autoRegistrar) addAll() error {
 
     
-    inst.register(&p019b1834ac_mock_Driver{})
     inst.register(&pac41a78b8d_localfiles_Driver{})
     inst.register(&pf6935ed6a9_core_BucketDriverManagerImpl{})
     inst.register(&pf6935ed6a9_core_BucketServiceImpl{})

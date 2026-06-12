@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"hash"
 	"io"
 	"strings"
 
@@ -25,6 +26,30 @@ type innerLocalBucket struct {
 	oo      buckets.OpenOptions
 	layout  layout
 	context context.Context
+}
+
+func (inst *innerLocalBucket) _impl() (buckets.Bucket, buckets.BucketFileAPI, buckets.BucketNativeSumAPI) {
+	return inst, inst, inst
+}
+
+// ForFiles implements buckets.Bucket.
+func (inst *innerLocalBucket) ForFiles() buckets.BucketFileAPI {
+	return inst
+}
+
+// ForSum implements buckets.Bucket.
+func (inst *innerLocalBucket) ForSum() buckets.BucketNativeSumAPI {
+	return inst
+}
+
+// Algorithm implements buckets.BucketNativeSumAPI.
+func (inst *innerLocalBucket) Algorithm() buckets.CheckSumAlgorithm {
+	return buckets.AlgorithmSHA256
+}
+
+// Hash implements buckets.BucketNativeSumAPI.
+func (inst *innerLocalBucket) Hash() hash.Hash {
+	panic("unimplemented")
 }
 
 // Bucket implements buckets.BucketFileAPI.
@@ -84,11 +109,6 @@ func (inst *innerLocalBucket) PutFile(o1 *buckets.ObjectFile) (*buckets.ObjectFi
 	return o1, nil
 }
 
-// ForFiles implements buckets.Bucket.
-func (inst *innerLocalBucket) ForFiles() buckets.BucketFileAPI {
-	return inst
-}
-
 // Delete implements buckets.Bucket.
 func (inst *innerLocalBucket) Delete(o1 *buckets.Object) error {
 
@@ -121,10 +141,6 @@ func (inst *innerLocalBucket) Delete(o1 *buckets.Object) error {
 		return fmt.Errorf("no object with name: %s", name)
 	}
 	return nil
-}
-
-func (inst *innerLocalBucket) _impl() (buckets.Bucket, buckets.BucketFileAPI) {
-	return inst, inst
 }
 
 func (inst *innerLocalBucket) isChildOf(child, parent afs.Path) bool {
@@ -224,6 +240,7 @@ func (inst *innerLocalBucket) Put(o1 *buckets.Object) (*buckets.Object, error) {
 	}
 
 	o2 := inst.GetObject(h.object.Name)
+	meta := new(innerMetaBuffer)
 
 	wtr, err := h.openDataWriter()
 	if err != nil {
@@ -242,13 +259,17 @@ func (inst *innerLocalBucket) Put(o1 *buckets.Object) (*buckets.Object, error) {
 		}
 	}
 
-	err = h.computeMeta(o2)
+	o2.Type = o1.Type
+
+	h.loadMeta(o2, meta)
+
+	err = h.computeMeta(o2, meta)
 	if err != nil {
 		return nil, err
 	}
 	o2.Size = total
 
-	err = h.writeMeta(o2)
+	err = h.writeMeta(o2, meta)
 	if err != nil {
 		return nil, err
 	}

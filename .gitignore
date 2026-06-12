@@ -9,8 +9,7 @@
 *.dylib
 
 __debug_*
-main
-test
+
 
 
 # Test binary, built with `go test -c`
