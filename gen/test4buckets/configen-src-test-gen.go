@@ -2,6 +2,7 @@ package test4buckets
 import (
     p262c04a06 "github.com/starter-go/buckets"
     pfde5cc127 "github.com/starter-go/buckets/src/test/golang/unit/com"
+    p0dc072ed4 "github.com/starter-go/units"
      "github.com/starter-go/application"
 )
 
@@ -37,6 +38,7 @@ func (inst* pfde5cc127c_com_CommonCrudUnits) inject(injext application.Injection
 
 	
     com.Service = inst.getService(ie)
+    com.DirManager = inst.getDirManager(ie)
     com.BucketName = inst.getBucketName(ie)
 
 
@@ -46,6 +48,11 @@ func (inst* pfde5cc127c_com_CommonCrudUnits) inject(injext application.Injection
 
 func (inst*pfde5cc127c_com_CommonCrudUnits) getService(ie application.InjectionExt)p262c04a06.Service{
     return ie.GetComponent("#alias-262c04a06c32904104382e2b8d56c279-Service").(p262c04a06.Service)
+}
+
+
+func (inst*pfde5cc127c_com_CommonCrudUnits) getDirManager(ie application.InjectionExt)p0dc072ed4.DirManager{
+    return ie.GetComponent("#alias-0dc072ed44b3563882bff4e657a52e62-DirManager").(p0dc072ed4.DirManager)
 }
 
 

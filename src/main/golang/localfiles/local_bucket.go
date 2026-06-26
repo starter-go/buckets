@@ -68,19 +68,51 @@ func (inst *innerLocalBucket) FetchFile(o1 *buckets.ObjectFile) (*buckets.Object
 		return nil, err
 	}
 
-	src := holder.dataFile
-	dst := o1.Path
+	srcFile := holder.dataFile
+	dstFile := o1.Path
 
-	copier := new(innerFileCopier)
-	err = copier.copy(src, dst)
+	/// io
+
+	ctrl := new(innerTempFileCtrl)
+	ctrl.init(dstFile)
+	defer ctrl.finish()
+
+	srcReader, err := srcFile.GetIO().OpenReader(nil)
+	if err != nil {
+		return nil, err
+	}
+	defer srcReader.Close()
+
+	tmpFile, opt, err := ctrl.prepareToWrite()
 	if err != nil {
 		return nil, err
 	}
 
-	info := dst.GetInfo()
-	o1.Bucket = inst
-	o1.Size = info.Length()
-	return o1, nil
+	tmpWriter, err := tmpFile.GetIO().OpenWriter(opt)
+	if err != nil {
+		return nil, err
+	}
+	defer tmpWriter.Close()
+
+	cnt, err := io.Copy(tmpWriter, srcReader)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ctrl.commit()
+	if err != nil {
+		return nil, err
+	}
+
+	// make result
+
+	o2 := new(buckets.ObjectFile)
+	o2.Context = o1.Context
+	o2.Bucket = inst
+	o2.Name = o1.Name
+	o2.Size = cnt
+
+	return o2, nil
 }
 
 // PutFile implements buckets.BucketFileAPI.
@@ -89,24 +121,102 @@ func (inst *innerLocalBucket) PutFile(o1 *buckets.ObjectFile) (*buckets.ObjectFi
 	if o1 == nil {
 		return nil, fmt.Errorf("param: 'object(want)' is nil")
 	}
+
 	holder, err := inst.innerGetObjectHolder(&o1.Object)
 	if err != nil {
 		return nil, err
 	}
 
+	ctrl := new(innerTempFileCtrl)
 	dst := holder.dataFile
 	src := o1.Path
+	hasOlder := dst.IsFile()
 
-	copier := new(innerFileCopier)
-	err = copier.copy(src, dst)
+	err = ctrl.init(dst)
 	if err != nil {
 		return nil, err
 	}
 
-	info := dst.GetInfo()
-	o1.Bucket = inst
-	o1.Size = info.Length()
-	return o1, nil
+	tmp3, opt3, err := ctrl.prepareToWrite()
+	if err != nil {
+		return nil, err
+	}
+
+	defer ctrl.finish()
+
+	// open reader
+
+	om := new(afs.OptionsMaker)
+	om.ReadOnly()
+	opt1 := om.Options()
+	srcReader, err := src.GetIO().OpenReader(&opt1)
+	if err != nil {
+		return nil, err
+	}
+	defer srcReader.Close()
+
+	// open writer
+
+	tmpWriter, err := tmp3.GetIO().OpenWriter(opt3)
+	if err != nil {
+		return nil, err
+	}
+	defer tmpWriter.Close()
+
+	// copy
+
+	count, err := io.Copy(tmpWriter, srcReader)
+	if err != nil {
+		return nil, err
+	}
+
+	tmpWriter.Close()
+
+	// commit
+
+	err = ctrl.commit()
+	if err != nil {
+		return nil, err
+	}
+
+	//  compute  meta
+
+	now := lang.Now()
+	metaBuf := new(innerMetaBuffer)
+	metaSett := metaBuf.setter()
+	metaGett := metaBuf.getter()
+
+	if hasOlder {
+		holder.loadMeta(&o1.Object, metaBuf)
+	} else {
+		metaSett.setTimeI64(MetaNameCreatedAt, now)
+		metaSett.setTimeStr(MetaNameCreatedAtTime, now)
+	}
+	holder.computeMeta(&o1.Object, metaBuf)
+
+	// write meta
+
+	holder.writeMeta(&o1.Object, metaBuf)
+
+	// make result
+
+	sum := metaGett.getSum(MetaNameSum)
+	res := new(buckets.ObjectFile)
+
+	if sum != nil {
+		res.Sum = *sum
+	}
+
+	res.Name = o1.Name
+	res.Bucket = inst
+	res.Size = count
+	res.Type = o1.Type
+	res.Meta = metaBuf.table
+	res.Context = o1.Context
+	res.Path = o1.Path
+	res.Existed = true
+
+	return res, nil
 }
 
 // Delete implements buckets.Bucket.

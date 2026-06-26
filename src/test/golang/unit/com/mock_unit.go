@@ -2,6 +2,7 @@ package com
 
 import (
 	"bytes"
+	"context"
 	"io"
 
 	"github.com/starter-go/buckets"
@@ -38,7 +39,7 @@ func (inst *MockUnit) ListRegistrations(list []*units.Registration) []*units.Reg
 	return list
 }
 
-func (inst *MockUnit) runTest() error {
+func (inst *MockUnit) runTest(cc context.Context) error {
 
 	holder := buckets.BucketHolder{}
 	ser := inst.Service

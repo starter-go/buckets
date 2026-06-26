@@ -9,6 +9,7 @@ import (
 	"io"
 	"strconv"
 
+	"github.com/starter-go/afs"
 	"github.com/starter-go/base/lang"
 	"github.com/starter-go/buckets"
 	"github.com/starter-go/buckets/src/test/golang/unit"
@@ -23,8 +24,10 @@ type CommonCrudUnits struct {
 
 	_as func(units.Unit) //starter:as(".")
 
-	Service    buckets.Service //starter:inject("#")
-	BucketName string          //starter:inject("${units.common-crud.bucket-name}")
+	Service    buckets.Service  //starter:inject("#")
+	DirManager units.DirManager //starter:inject("#")
+
+	BucketName string //starter:inject("${units.common-crud.bucket-name}")
 
 }
 
@@ -86,76 +89,18 @@ func (inst *CommonCrudUnits) ListRegistrations(list []*units.Registration) []*un
 	return list
 }
 
-// func (inst *CommonCrudUnits) runTest() error {
-
-// 	holder := buckets.BucketHolder{}
-// 	ser := inst.Service
-// 	name := "mock.demo"
-
-// 	err := holder.SetName(name).SetService(ser).Init()
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	// bucket
-// 	bucket, err := holder.GetBucket()
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	// object
-// 	o1 := bucket.GetObject("/a/b/c/d")
-
-// 	// data
-// 	data1 := "hello,bucket"
-// 	data2 := bytes.NewBufferString(data1)
-
-// 	// write
-// 	o1.Data = io.NopCloser(data2)
-// 	o1.Type = "application/x-bin"
-// 	_, err = bucket.Put(o1)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	// read
-// 	o2 := bucket.GetObject(o1.Name)
-// 	o2, err = bucket.Fetch(o2)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	data3 := o2.Data
-// 	data4, err := io.ReadAll(data3)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	vlog.Info("read object data:")
-// 	vlog.Info("    name = %v", o2.Name)
-// 	vlog.Info("     len = %v", len(data4))
-// 	vlog.Info("     sum = %v", o2.Sum)
-// 	vlog.Info("    type = %v", o2.Type)
-
-// 	// todo ...
-
-// 	// meta
-// 	// todo ...
-
-// 	return nil
-// }
-
-func (inst *CommonCrudUnits) prepareTesting() (*innerCommonCrudTesting, error) {
+func (inst *CommonCrudUnits) prepareTesting(cc context.Context) (*innerCommonCrudTesting, error) {
 
 	t := new(innerCommonCrudTesting)
-	ctx := context.Background()
 	sel := inst.BucketName
 	ser := inst.Service
 
-	bkt, err := ser.GetBucket(ctx, sel)
+	bkt, err := ser.GetBucket(cc, sel)
 	if err != nil {
 		return nil, err
 	}
 
+	t.cc = cc
 	t.bucket = bkt
 	return t, nil
 }
@@ -171,9 +116,9 @@ func (inst *CommonCrudUnits) runSteps(t *innerCommonCrudTesting) error {
 	return nil
 }
 
-func (inst *CommonCrudUnits) runInsert() error {
+func (inst *CommonCrudUnits) runInsert(cc context.Context) error {
 
-	t, err := inst.prepareTesting()
+	t, err := inst.prepareTesting(cc)
 	if err != nil {
 		return err
 	}
@@ -193,8 +138,9 @@ func (inst *CommonCrudUnits) runInsert() error {
 	return inst.runSteps(t)
 }
 
-func (inst *CommonCrudUnits) runUpdate() error {
-	t, err := inst.prepareTesting()
+func (inst *CommonCrudUnits) runUpdate(cc context.Context) error {
+
+	t, err := inst.prepareTesting(cc)
 	if err != nil {
 		return err
 	}
@@ -218,8 +164,9 @@ func (inst *CommonCrudUnits) runUpdate() error {
 	return inst.runSteps(t)
 }
 
-func (inst *CommonCrudUnits) runFetch() error {
-	t, err := inst.prepareTesting()
+func (inst *CommonCrudUnits) runFetch(cc context.Context) error {
+
+	t, err := inst.prepareTesting(cc)
 	if err != nil {
 		return err
 	}
@@ -239,8 +186,9 @@ func (inst *CommonCrudUnits) runFetch() error {
 	return inst.runSteps(t)
 }
 
-func (inst *CommonCrudUnits) runRemove() error {
-	t, err := inst.prepareTesting()
+func (inst *CommonCrudUnits) runRemove(cc context.Context) error {
+
+	t, err := inst.prepareTesting(cc)
 	if err != nil {
 		return err
 	}
@@ -263,17 +211,17 @@ func (inst *CommonCrudUnits) runRemove() error {
 	return inst.runSteps(t)
 }
 
-func (inst *CommonCrudUnits) runFileRead() error {
-	t, err := inst.prepareTesting()
+func (inst *CommonCrudUnits) runFileRead(cc context.Context) error {
+
+	t, err := inst.prepareTesting(cc)
 	if err != nil {
 		return err
 	}
 	steps := t.steps
 
 	steps = append(steps, t.doInit)
-	steps = append(steps, t.doInsert)
-	steps = append(steps, t.doCheck)
-	steps = append(steps, t.doFetch)
+	steps = append(steps, t.doFileRead)
+	steps = append(steps, t.doComputeAllSum)
 	steps = append(steps, t.doCheck)
 	steps = append(steps, t.doLog)
 
@@ -281,17 +229,16 @@ func (inst *CommonCrudUnits) runFileRead() error {
 	return inst.runSteps(t)
 }
 
-func (inst *CommonCrudUnits) runFileWrite() error {
-	t, err := inst.prepareTesting()
+func (inst *CommonCrudUnits) runFileWrite(cc context.Context) error {
+
+	t, err := inst.prepareTesting(cc)
 	if err != nil {
 		return err
 	}
 	steps := t.steps
 
 	steps = append(steps, t.doInit)
-	steps = append(steps, t.doInsert)
-	steps = append(steps, t.doCheck)
-	steps = append(steps, t.doFetch)
+	steps = append(steps, t.doFileWrite)
 	steps = append(steps, t.doCheck)
 	steps = append(steps, t.doLog)
 
@@ -302,6 +249,8 @@ func (inst *CommonCrudUnits) runFileWrite() error {
 ////////////////////////////////////////////////////////////////////////////////
 
 type innerCommonCrudTesting struct {
+	cc context.Context
+
 	steps []func(*CommonCrudUnits) error
 
 	oName buckets.ObjectName
@@ -364,6 +313,165 @@ func (inst *innerCommonCrudTesting) doFetch(u *CommonCrudUnits) error {
 	}
 
 	inst.body2data = data
+	return nil
+}
+
+func (inst *innerCommonCrudTesting) doFileRead(u *CommonCrudUnits) error {
+
+	cc := inst.cc
+	bucket := inst.bucket
+	fapi := bucket.ForFiles()
+
+	data1 := inst.body1data
+	sum1 := inst.innerComputeSum(data1)
+	name1 := buckets.ObjectName("objects/" + sum1 + "/data")
+
+	oName := name1
+	inst.oName = name1
+
+	// file & dir
+
+	hDir := &units.DirHolder{
+		Context: cc,
+		Key:     units.DirKeyTemp,
+		Scope:   units.DirScopeRuntime,
+	}
+
+	hDir, err := u.DirManager.GetDir(hDir)
+	if err != nil {
+		return err
+	}
+
+	dir := hDir.Path
+	file := dir.GetChild("file-to-read.demo")
+
+	// objects
+
+	data1r := bytes.NewReader(data1)
+	data1rc := io.NopCloser(data1r)
+	o1 := &buckets.Object{
+		Context: cc,
+		Name:    oName,
+		Data:    data1rc,
+	}
+
+	o2 := &buckets.ObjectFile{
+		Path: file,
+	}
+	o2.Name = oName
+
+	// write (as mem)
+
+	o1, err = bucket.Put(o1)
+	if err != nil {
+		return err
+	}
+
+	// read (as file)
+
+	o2, err = fapi.FetchFile(o2)
+	if err != nil {
+		return err
+	}
+
+	// load body2
+
+	bin3, err := file.GetIO().ReadBinary(nil)
+	if err != nil {
+		return err
+	}
+	sum3 := inst.innerComputeSum(bin3)
+	inst.body2data = bin3
+	inst.body2sum = sum3
+
+	return nil
+}
+
+func (inst *innerCommonCrudTesting) doFileWrite(u *CommonCrudUnits) error {
+
+	cc := inst.cc
+	bucket := inst.bucket
+	fapi := bucket.ForFiles()
+
+	data1 := inst.body1data
+	sum1 := inst.innerComputeSum(data1)
+	name1 := buckets.ObjectName("objects/" + sum1 + "/data")
+
+	inst.oName = name1
+
+	// file & dir
+
+	hDir := &units.DirHolder{
+		Context: cc,
+		Key:     units.DirKeyTemp,
+		Scope:   units.DirScopeRuntime,
+	}
+
+	hDir, err := u.DirManager.GetDir(hDir)
+	if err != nil {
+		return err
+	}
+
+	dir := hDir.Path
+	file := dir.GetChild("file-to-write.demo")
+
+	if !dir.Exists() {
+		om := new(afs.OptionsMaker)
+		// om.Create().WriteOnly()
+		om.SetMode(7, 5, 5)
+		opt := om.Options()
+		dir.Mkdirs(&opt)
+	}
+
+	// prepare demo file
+
+	om := new(afs.OptionsMaker)
+	om.Create().WriteOnly()
+	om.SetMode(6, 4, 4)
+	opt := om.Options()
+
+	err = file.GetIO().WriteBinary(data1, &opt)
+	if err != nil {
+		return err
+	}
+
+	// write (as file)
+
+	fo1 := new(buckets.ObjectFile)
+	fo1.Name = name1
+	fo1.Context = cc
+	fo1.Path = file
+	fo1.Type = "application/x-bin-data"
+
+	fo1, err = fapi.PutFile(fo1)
+	if err != nil {
+		return err
+	}
+
+	// read (as mem)
+
+	o2 := new(buckets.Object)
+	o2.Name = name1
+	o2.Context = cc
+
+	o2, err = bucket.Fetch(o2)
+	if err != nil {
+		return err
+	}
+
+	o2reader := o2.Data
+	if o2reader == nil {
+		return fmt.Errorf("o2reader is nil")
+	}
+	defer o2reader.Close()
+
+	o2data, err := io.ReadAll(o2reader)
+	if err != nil {
+		return err
+	}
+
+	inst.body2data = o2data
+
 	return nil
 }
 

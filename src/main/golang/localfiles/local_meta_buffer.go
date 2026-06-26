@@ -83,6 +83,58 @@ type innerMetaGetter struct {
 	buffer *innerMetaBuffer
 }
 
+func (inst *innerMetaGetter) getSum(name MetaName) *buckets.SUM {
+
+	// like : 'alg(1234567890abcd)'
+
+	text := inst.getString(name)
+	if text == "" {
+		return nil
+	}
+
+	var alg, hex string
+	p1 := strings.IndexByte(text, '(')
+	p2 := strings.LastIndexByte(text, ')')
+
+	if (0 < p1) && (p1 < p2) {
+		alg = strings.TrimSpace(text[0:p1])
+		hex = strings.TrimSpace(text[p1+1 : p2])
+	} else {
+		return nil
+	}
+
+	sum := new(buckets.SUM)
+	sum.Algorithm = buckets.CheckSumAlgorithm(alg)
+	sum.Value = lang.Hex(hex)
+
+	return sum
+}
+
+func (inst *innerMetaGetter) getString(name MetaName) string {
+	return inst.buffer.get(name)
+}
+
+func (inst *innerMetaGetter) getTime(name MetaName) lang.Time {
+	const (
+		bits = 64
+		base = 10
+	)
+	text := inst.getString(name)
+	if text == "" {
+		return 0
+	}
+	n, err := strconv.ParseInt(text, base, bits)
+	if err != nil {
+		return 0
+	}
+	return lang.Time(n)
+}
+
+func (inst *innerMetaGetter) getTimeStr(name MetaName) string {
+	text := inst.getString(name)
+	return text
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 type innerMetaSetter struct {
