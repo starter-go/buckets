@@ -31,10 +31,18 @@ func (inst *innerObjectHolder) openDataWriter() (io.WriteCloser, error) {
 }
 
 func (inst *innerObjectHolder) readMeta(o *buckets.Object) error {
+
 	if o == nil {
 		return fmt.Errorf("object is nil")
 	}
 
+	buf := new(innerMetaBuffer)
+	err := inst.loadMeta(o, buf)
+	if err != nil {
+		return err
+	}
+
+	o.Meta = buf.table
 	return nil
 }
 
@@ -73,7 +81,7 @@ func (inst *innerObjectHolder) writeMeta(o *buckets.Object, meta *innerMetaBuffe
 	// ts := strconv.FormatInt(now.Int(), base)
 
 	ptable := properties.NewTable(nil)
-	ptable.Import(meta.table)
+	ptable.Import(meta.table.Export(nil))
 
 	// ptable.SetProperty("meta.timestamp", ts)
 

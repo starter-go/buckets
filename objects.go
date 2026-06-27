@@ -7,10 +7,6 @@ import (
 	"github.com/starter-go/afs"
 )
 
-// // ObjectMeta 结构包含对象的元数据信息
-// type ObjectMeta struct {
-// }
-
 // Object  代表一个具体的对象
 type Object struct {
 
@@ -36,7 +32,7 @@ type Object struct {
 	Existed bool
 
 	// 对象的元数据
-	Meta map[string]string
+	Meta MetaMap
 
 	// 对象的数据来源
 	Data io.ReadCloser

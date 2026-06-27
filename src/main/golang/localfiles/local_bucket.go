@@ -28,6 +28,46 @@ type innerLocalBucket struct {
 	context context.Context
 }
 
+// SetMeta implements buckets.Bucket.
+func (inst *innerLocalBucket) SetMeta(o1 *buckets.Object) (*buckets.Object, error) {
+
+	h, err := inst.innerGetObjectHolder(o1)
+	if err != nil {
+		return nil, err
+	}
+
+	buf := new(innerMetaBuffer)
+	name := h.object.Name
+
+	// read
+	err = h.loadMeta(o1, buf)
+	if err != nil {
+		return nil, err
+	}
+
+	// append
+	src := o1.Meta
+	for k, v := range src {
+		buf.set(k, v)
+	}
+
+	// write
+	err = h.writeMeta(o1, buf)
+	if err != nil {
+		return nil, err
+	}
+
+	// make result
+	o2 := inst.GetObject(name)
+	o2.Bucket = inst
+	o2.Context = o1.Context
+	o2.Name = name
+	o2.Meta = buf.table
+	o2.Existed = true
+
+	return o2, err
+}
+
 func (inst *innerLocalBucket) _impl() (buckets.Bucket, buckets.BucketFileAPI, buckets.BucketNativeSumAPI) {
 	return inst, inst, inst
 }
@@ -49,7 +89,7 @@ func (inst *innerLocalBucket) Algorithm() buckets.CheckSumAlgorithm {
 
 // Hash implements buckets.BucketNativeSumAPI.
 func (inst *innerLocalBucket) Hash() hash.Hash {
-	panic("unimplemented")
+	return sha256.New()
 }
 
 // Bucket implements buckets.BucketFileAPI.
@@ -111,6 +151,11 @@ func (inst *innerLocalBucket) FetchFile(o1 *buckets.ObjectFile) (*buckets.Object
 	o2.Bucket = inst
 	o2.Name = o1.Name
 	o2.Size = cnt
+
+	// load meta
+	metaBuff := new(innerMetaBuffer)
+	holder.loadMeta(&o2.Object, metaBuff)
+	o2.Meta = metaBuff.table
 
 	return o2, nil
 }
@@ -338,6 +383,11 @@ func (inst *innerLocalBucket) Fetch(o1 *buckets.Object) (*buckets.Object, error)
 		return nil, err
 	}
 
+	// load meta
+	metaBuff := new(innerMetaBuffer)
+	h.loadMeta(o2, metaBuff)
+
+	o2.Meta = metaBuff.table
 	o2.Data = data
 	return o2, nil
 }

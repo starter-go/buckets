@@ -7,6 +7,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"io"
+	"sort"
 	"strconv"
 
 	"github.com/starter-go/afs"
@@ -79,12 +80,28 @@ func (inst *CommonCrudUnits) ListRegistrations(list []*units.Registration) []*un
 		Do:       inst.runFileWrite,
 	}
 
+	u7 := &units.Registration{
+		Name:     unit.TheCommonCrudUnits + "sum-api",
+		Enabled:  true,
+		Priority: 13,
+		Do:       inst.runTrySumAPI,
+	}
+
+	u8 := &units.Registration{
+		Name:     unit.TheCommonCrudUnits + "meta-io",
+		Enabled:  true,
+		Priority: 12,
+		Do:       inst.runTryMetaIO,
+	}
+
 	list = append(list, u1)
 	list = append(list, u2)
 	list = append(list, u3)
 	list = append(list, u4)
 	list = append(list, u5)
 	list = append(list, u6)
+	list = append(list, u7)
+	list = append(list, u8)
 
 	return list
 }
@@ -241,6 +258,44 @@ func (inst *CommonCrudUnits) runFileWrite(cc context.Context) error {
 	steps = append(steps, t.doFileWrite)
 	steps = append(steps, t.doCheck)
 	steps = append(steps, t.doLog)
+
+	t.steps = steps
+	return inst.runSteps(t)
+}
+
+func (inst *CommonCrudUnits) runTryMetaIO(cc context.Context) error {
+
+	t, err := inst.prepareTesting(cc)
+	if err != nil {
+		return err
+	}
+	steps := t.steps
+
+	steps = append(steps, t.doInit)
+	steps = append(steps, t.doInsert)
+	steps = append(steps, t.doTryMetaIO)
+
+	// steps = append(steps, t.doCheck)
+	// steps = append(steps, t.doLog)
+
+	t.steps = steps
+	return inst.runSteps(t)
+}
+
+func (inst *CommonCrudUnits) runTrySumAPI(cc context.Context) error {
+
+	t, err := inst.prepareTesting(cc)
+	if err != nil {
+		return err
+	}
+	steps := t.steps
+
+	steps = append(steps, t.doInit)
+	steps = append(steps, t.doInsert)
+	steps = append(steps, t.doTrySumAPI)
+
+	// steps = append(steps, t.doCheck)
+	// steps = append(steps, t.doLog)
 
 	t.steps = steps
 	return inst.runSteps(t)
@@ -556,6 +611,98 @@ func (inst *innerCommonCrudTesting) doUpdate(u *CommonCrudUnits) error {
 	if name1 != name2 {
 		return fmt.Errorf("name1 != name2")
 	}
+
+	return nil
+}
+
+func (inst *innerCommonCrudTesting) doTryMetaIO(u *CommonCrudUnits) error {
+
+	cc := inst.cc
+	bucket := inst.bucket
+	name := inst.oName
+
+	o1 := bucket.GetObject(name)
+	o2 := bucket.GetObject(name)
+
+	o1.Context = cc
+	o2.Context = cc
+
+	// set meta
+
+	meta := o1.Meta
+	meta = meta.Init()
+	o1.Meta = meta
+
+	meta.Put("x", "foo")
+	meta.Put("y", "bar")
+	meta.Put("z", "hello")
+
+	o1, err := bucket.SetMeta(o1)
+	if err != nil {
+		return err
+	}
+
+	// get meta
+
+	o2, err = bucket.GetMeta(o2)
+	if err != nil {
+		return err
+	}
+
+	vlog.Info("Meta:")
+	meta = o2.Meta
+	namelist := make([]string, 0)
+
+	for k := range meta {
+		namelist = append(namelist, k.String())
+	}
+
+	sort.Strings(namelist)
+
+	for _, name := range namelist {
+		value := meta.Get(buckets.MetaName(name))
+		vlog.Info("    %s = %s", name, value)
+	}
+
+	return nil
+}
+
+func (inst *innerCommonCrudTesting) doTrySumAPI(u *CommonCrudUnits) error {
+
+	cc := inst.cc
+	bucket := inst.bucket
+	name := inst.oName
+	sumapi := bucket.ForSum()
+
+	o1 := new(buckets.Object)
+	o1.Context = cc
+	o1.Name = name
+
+	o1, err := bucket.Fetch(o1)
+	if err != nil {
+		return err
+	}
+
+	o1reader := o1.Data
+	defer o1reader.Close()
+
+	o1raw, err := io.ReadAll(o1reader)
+	if err != nil {
+		return err
+	}
+
+	alg := sumapi.Algorithm()
+	ha := sumapi.Hash()
+	ha.Write(o1raw)
+	sum := []byte{}
+	sum = ha.Sum(sum)
+	hex := lang.HexFromBytes(sum)
+	size := len(o1raw)
+
+	etag := o1.Sum
+
+	vlog.Info("[object name:'%s'      size:%d   etag:'%s']", name, size, etag.String())
+	vlog.Info("[object name:'%s' algorithm:'%s'  sum:'%s']", name, alg, hex)
 
 	return nil
 }

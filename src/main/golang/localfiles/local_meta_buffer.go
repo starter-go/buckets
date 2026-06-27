@@ -9,47 +9,38 @@ import (
 	"github.com/starter-go/buckets"
 )
 
-type MetaName string
+////////////////////////////////////////////////////////////////////////////////
+
+type MetaName = buckets.MetaName
 
 const (
-	MetaNamePrefix MetaName = "object."
+	MetaNameLength = buckets.MetaObjectLength
+	MetaNameType   = buckets.MetaObjectType
+	MetaNameSum    = buckets.MetaObjectSum
 
-	MetaNameLength MetaName = MetaNamePrefix + "length"
-	MetaNameType   MetaName = MetaNamePrefix + "type"
-	MetaNameSum    MetaName = MetaNamePrefix + "sum"
-
-	MetaNameCreatedAt     MetaName = MetaNamePrefix + "created-at"
-	MetaNameCreatedAtTime MetaName = MetaNamePrefix + "created-at-time"
-	MetaNameUpdatedAt     MetaName = MetaNamePrefix + "updated-at"
-	MetaNameUpdatedAtTime MetaName = MetaNamePrefix + "updated-at-time"
+	MetaNameCreatedAt     = buckets.MetaObjectCreatedAt
+	MetaNameCreatedAtTime = buckets.MetaObjectCreatedAtTime
+	MetaNameUpdatedAt     = buckets.MetaObjectUpdatedAt
+	MetaNameUpdatedAtTime = buckets.MetaObjectUpdatedAtTime
 )
 
 ////////////////////////////////////////////////////////////////////////////////
 
 type innerMetaBuffer struct {
-	table map[string]string
+	table buckets.MetaMap
 }
 
 func (inst *innerMetaBuffer) set(name MetaName, value string) {
-	if name == "" || value == "" {
-		return
-	}
 	t := inst.table
 	if t == nil {
-		t = make(map[string]string)
+		t = t.Init()
 		inst.table = t
 	}
-	key := string(name)
-	t[key] = value
+	t.Put(name, value)
 }
 
 func (inst *innerMetaBuffer) get(name MetaName) string {
-	t := inst.table
-	if t == nil {
-		return ""
-	}
-	key := string(name)
-	return t[key]
+	return inst.table.Get(name)
 }
 
 func (inst *innerMetaBuffer) getRequiredValue(name MetaName) (string, error) {
