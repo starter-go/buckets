@@ -7,6 +7,7 @@ import (
 	"github.com/starter-go/buckets/gen/test4buckets"
 	"github.com/starter-go/mimetypes/modules/mimetypes"
 	"github.com/starter-go/units/modules/units"
+	"github.com/starter-go/v0/libvlog"
 )
 
 func ModuleLib() application.Module {
@@ -15,6 +16,7 @@ func ModuleLib() application.Module {
 	mb.Components(main4buckets.ExportComponents)
 
 	mb.Depend(mimetypes.Module())
+	mb.Depend(libvlog.Module())
 
 	return mb.Create()
 }
